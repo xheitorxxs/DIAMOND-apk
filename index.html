@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04122b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>DIAMOND</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100vh;overflow-x:hidden}
+body{
+  color:#eef7ff;font-family:system-ui,'Segoe UI',Arial,sans-serif;
+  background:radial-gradient(circle at 20% 0%,#123a6e 0%,#04122b 55%) fixed;
+}
+header,main,footer{position:relative;z-index:1}
+header{text-align:center;padding:24px 12px 10px}
+.brand{
+  font-size:clamp(42px,12vw,78px);font-weight:900;letter-spacing:8px;
+  background:linear-gradient(180deg,#e8f7ff,#4dc6ff 70%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.clock{
+  margin:14px auto;padding:14px;border:1px solid #4dc6ff44;border-radius:16px;
+  background:#061a33;max-width:520px;
+}
+#time{font-size:clamp(30px,8vw,48px);font-weight:800;color:#aeeaff;font-variant-numeric:tabular-nums}
+#date{margin-top:4px;color:#c5d9f1;font-size:14px}
+main{max-width:900px;margin:auto;padding:14px}
+.view{display:none}
+.view.active{display:block}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.tile{
+  padding:22px 8px;min-height:120px;
+  border:1px solid #4dc6ff55;border-radius:16px;
+  background:#0e2b54;color:white;font-size:16px;font-weight:600;
+  cursor:pointer;transition:transform .15s,border-color .15s;
+  will-change:transform;
+}
+.tile:active{transform:scale(.96);border-color:#4dc6ff}
+.tile span{display:block;font-size:34px;margin-bottom:8px}
+.panel{
+  padding:16px;border:1px solid #365a83;border-radius:16px;
+  background:#071a38;margin-bottom:14px;
+}
+.top{display:flex;align-items:center;gap:12px;margin:5px 0 14px}
+.back,button,.pick{
+  cursor:pointer;color:white;background:#17477b;
+  border:1px solid #4dc6ff88;border-radius:10px;
+  padding:10px 14px;font-weight:600;
+  transition:transform .12s,background .12s;
+}
+.back:active,button:active,.pick:active{transform:scale(.95);background:#1e6fff}
+.back{font-size:20px;padding:8px 12px}
+h2{margin:0;font-weight:800;letter-spacing:1px}
+.muted{color:#b8cbe6;line-height:1.5}
+.pick{display:inline-flex;align-items:center;gap:6px;margin:6px 0}
+.pick input{display:none}
+.library{display:grid;gap:10px;margin-top:12px}
+.item{padding:10px;border:1px solid #365a83;border-radius:12px;background:#04122b;overflow-wrap:anywhere}
+.item .name{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .meta{font-size:12px;color:#8ba7c8;margin:4px 0 6px}
+audio,video{width:100%;margin-top:6px;border-radius:8px}
+.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.photos .item{padding:6px}
+.photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;display:block}
+#board{
+  display:grid;grid-template-columns:repeat(9,1fr);
+  max-width:450px;margin:16px auto;
+  border:2px solid #4dc6ff;border-radius:8px;overflow:hidden;
+}
+.cell{
+  aspect-ratio:1;padding:0;border:1px solid #365a83;border-radius:0;
+  background:#0b1b35;font-size:clamp(14px,4.5vw,22px);color:#aeeaff;font-weight:600;
+}
+.cell.fixed{background:#0e2b54;color:#8ab8e0;font-weight:700}
+.cell.selected{outline:2px solid #4dc6ff;background:#1e6fff55}
+.cell.same{background:#1e6fff22;color:#4dc6ff}
+.cell.error{background:#ff3b3b55;color:#ff9999}
+.cell:nth-child(3n){border-right:2px solid #4dc6ff}
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54){border-bottom:2px solid #4dc6ff}
+.pad{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:450px;margin:auto}
+.pad button{padding:12px 0;font-size:17px;font-weight:700}
+.status{text-align:center;color:#aeeaff;min-height:22px;margin:12px 0;font-weight:600}
+.status.ok{color:#4dff88}.status.err{color:#ff8888}
+footer{text-align:center;color:#8ba7c8;padding:20px;font-size:12px;letter-spacing:1px}
+@media(max-width:400px){.brand{letter-spacing:5px}.tile{font-size:15px;min-height:110px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">DIAMOND</div>
+  <div class="clock">
+    <div id="time">00:00:00</div>
+    <div id="date">Carregando...</div>
+  </div>
+</header>
+
+<main>
+<section id="home" class="view active">
+  <p style="text-align:center;color:#b8cbe6;margin:12px 0">Bem-vindo ao seu espaço digital</p>
+  <div class="tiles">
+    <button class="tile" onclick="openView('sudoku')"><span>🔢</span>Sudoku</button>
+    <button class="tile" onclick="openView('music')"><span>🎵</span>Músicas</button>
+    <button class="tile" onclick="openView('videos')"><span>🎬</span>Vídeos</button>
+    <button class="tile" onclick="openView('photos')"><span>🖼️</span>Fotos</button>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3 style="margin-top:0">💎 DIAMOND</h3>
+    <p class="muted">Jogos, músicas, vídeos e fotos em um só lugar. Seus arquivos ficam salvos no dispositivo, mesmo após reiniciar.</p>
+  </div>
+</section>
+
+<section id="sudoku" class="view">
+  <div class="top"><button class="back" onclick="openView('home')">←</button><h2>Sudoku</h2></div>
+  <div class="panel">
+    <p class="muted">Preencha as casas vazias com números de 1 a 9, sem repetir na linha, coluna ou quadrado 3×3.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button onclick="newSudoku()">Novo</button>
+      <button onclick="checkSudoku()">Conferir</button>
+      <button onclick="resetSudoku()">Reiniciar</button>
+      <button onclick="setSudoku(0)">Apagar</button>
+    </div>
+    <div id="board"></div>
+    <div class="pad" id="pad"></div>
+    <div class="status" id="sstatus"></div>
+  </div>
+</section>
+
+<section id="music" class="view">
+  <div class="top"><button class="back" onclick="openView('home')">←</button><h2>🎵 Músicas</h2></div>
+  <div class="panel">
+    <p class="muted">Selecione músicas do seu celular. Elas ficarão salvas no dispositivo.</p>
+    <label class="pick">＋ Importar<input id="audioFiles" type="file" accept="audio/*" multiple onchange="importFiles('audio',this.files)"></label>
+    <div id="audioLibrary" class="library"></div>
+  </div>
+</section>
+
+<section id="videos" class="view">
+  <div class="top"><button class="back" onclick="openView('home')">←</button><h2>🎬 Vídeos</h2></div>
+  <div class="panel">
+    <p class="muted">Selecione vídeos do seu celular para assistir depois.</p>
+    <label class="pick">＋ Importar<input id="videoFiles" type="file" accept="video/*" multiple onchange="importFiles('video',this.files)"></label>
+    <div id="videoLibrary" class="library"></div>
+  </div>
+</section>
+
+<section id="photos" class="view">
+  <div class="top"><button class="back" onclick="openView('home')">←</button><h2>🖼️ Fotos</h2></div>
+  <div class="panel">
+    <p class="muted">Selecione fotos do celular para montar sua galeria.</p>
+    <label class="pick">＋ Importar<input id="imageFiles" type="file" accept="image/*" multiple onchange="importFiles('image',this.files)"></label>
+    <div id="imageLibrary" class="photos"></div>
+  </div>
+</section>
+</main>
+<footer>DIAMOND • SEU ESPAÇO DIGITAL</footer>
+
+<script>
+/* ---------- RELÓGIO (só segundos, sem repaint pesado) ---------- */
+const elTime=document.getElementById('time'),elDate=document.getElementById('date');
+let lastSec=-1;
+function tick(){
+  const d=new Date(),s=d.getSeconds();
+  if(s===lastSec)return;
+  lastSec=s;
+  elTime.textContent=d.toLocaleTimeString('pt-BR',{hour12:false});
+  if(!elDate.dataset.set){
+    elDate.textContent=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    elDate.dataset.set='1';
+  }
+}
+tick();setInterval(tick,1000);
+
+/* ---------- NAVEGAÇÃO ---------- */
+const views=document.querySelectorAll('.view');
+function openView(id){
+  for(const v of views)v.classList.toggle('active',v.id===id);
+  window.scrollTo(0,0);
+}
+
+/* ---------- SUDOKU (render otimizado) ---------- */
+const puzzles=[
+'530070000600195000098000060800060003400803001700020006060000280000419005000080079',
+'000260701680070090190004500820100040004602900050003028009300074040050036703018000',
+'003020600900305001001806400008102900700000008006708200002609500800203009005010300'
+];
+let grid=[],solution=[],fixed=[],selected=-1,cells=[];
+
+function solve(a){
+  let pos=-1,opts=null;
+  for(let i=0;i<81;i++)if(!a[i]){
+    const r=(i/9)|0,c=i%9,used=new Set();
+    for(let k=0;k<9;k++){if(a[r*9+k])used.add(a[r*9+k]);if(a[k*9+c])used.add(a[k*9+c]);}
+    const br=((r/3)|0)*3,bc=((c/3)|0)*3;
+    for(let y=br;y<br+3;y++)for(let x=bc;x<bc+3;x++)if(a[y*9+x])used.add(a[y*9+x]);
+    const p=[1,2,3,4,5,6,7,8,9].filter(n=>!used.has(n));
+    if(!p.length)return false;
+    if(!opts||p.length<opts.length){pos=i;opts=p;}
+    if(p.length===1)break;
+  }
+  if(pos<0)return true;
+  for(const n of opts){a[pos]=n;if(solve(a))return true;}
+  a[pos]=0;return false;
+}
+
+// Constrói os 81 botões uma única vez
+(function buildBoard(){
+  const b=document.getElementById('board');
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<81;i++){
+    const c=document.createElement('button');
+    c.className='cell';
+    c.onclick=()=>{selected=i;paint();};
+    cells.push(c);frag.appendChild(c);
+  }
+  b.appendChild(frag);
+})();
+
+// Pad 1-9
+(function buildPad(){
+  const p=document.getElementById('pad');
+  for(let n=1;n<=9;n++){
+    const b=document.createElement('button');
+    b.textContent=n;b.onclick=()=>setSudoku(n);
+    p.appendChild(b);
+  }
+})();
+
+function newSudoku(){
+  grid=puzzles[(Math.random()*puzzles.length)|0].split('').map(Number);
+  fixed=grid.map(n=>n!==0);solution=grid.slice();solve(solution);
+  selected=-1;
+  const st=document.getElementById('sstatus');st.textContent='';st.className='status';
+  paint();
+}
+function resetSudoku(){
+  for(let i=0;i<81;i++)if(!fixed[i])grid[i]=0;
+  selected=-1;
+  const st=document.getElementById('sstatus');st.textContent='Tabuleiro reiniciado.';st.className='status';
+  paint();
+}
+function paint(){
+  const selVal=selected>=0?grid[selected]:0;
+  for(let i=0;i<81;i++){
+    const c=cells[i],n=grid[i];
+    let cls='cell';
+    if(fixed[i])cls+=' fixed';
+    if(selected===i)cls+=' selected';
+    else if(selVal&&n===selVal)cls+=' same';
+    if(n&&solution.length&&n!==solution[i])cls+=' error';
+    if(c.className!==cls)c.className=cls;
+    const t=n?String(n):'';
+    if(c.textContent!==t)c.textContent=t;
+  }
+}
+function setSudoku(n){
+  const st=document.getElementById('sstatus');
+  if(selected<0){st.textContent='Escolha uma casa primeiro.';st.className='status';return;}
+  if(fixed[selected]){st.textContent='Essa casa não pode ser alterada.';st.className='status';return;}
+  grid[selected]=n;st.textContent='';st.className='status';paint();
+}
+function checkSudoku(){
+  const st=document.getElementById('sstatus');
+  if(grid.every((n,i)=>n===solution[i])){st.textContent='🎉 Parabéns! Você completou o Sudoku!';st.className='status ok';}
+  else if(grid.every((n,i)=>!n||n===solution[i])){st.textContent='Até agora está correto. Continue!';st.className='status';}
+  else{st.textContent='Há números errados ou casas vazias.';st.className='status err';}
+}
+newSudoku();
+
+/* ---------- INDEXEDDB (persistente, leve) ---------- */
+let db=null;
+const kinds=['audio','video','image'];
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('DIAMOND_LIBRARY',2);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('files')){
+        const s=d.createObjectStore('files',{keyPath:'id',autoIncrement:true});
+        s.createIndex('kind','kind');
+      }
+    };
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  });
+}
+function addFile(item){return new Promise((res,rej)=>{
+  const r=db.transaction('files','readwrite').objectStore('files').add(item);
+  r.onsuccess=res;r.onerror=()=>rej(r.error);});}
+function allFiles(kind){return new Promise((res,rej)=>{
+  const r=db.transaction('files').objectStore('files').index('kind').getAll(kind);
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function deleteFile(id){return new Promise((res,rej)=>{
+  const r=db.transaction('files','readwrite').objectStore('files').delete(id);
+  r.onsuccess=res;r.onerror=()=>rej(r.error);});}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';if(b<1073741824)return (b/1048576).toFixed(1)+' MB';return (b/1073741824).toFixed(2)+' GB';}
+
+async function importFiles(kind,fileList){
+  if(!db){alert('Armazenamento carregando. Tente de novo.');return;}
+  if(!fileList.length)return;
+  let ok=0,fail=0;
+  for(const f of fileList){
+    try{await addFile({kind,name:f.name,type:f.type,size:f.size,blob:f,added:Date.now()});ok++;}
+    catch(e){fail++;}
+  }
+  await renderFiles(kind);
+  if(fail>0)alert(`${ok} importado(s). ${fail} falhou(aram).`);
+}
+
+async function renderFiles(kind){
+  if(!db)return;
+  const files=await allFiles(kind);
+  files.sort((a,b)=>(b.added||0)-(a.added||0));
+  const target=document.getElementById(kind==='audio'?'audioLibrary':kind==='video'?'videoLibrary':'imageLibrary');
+  target.textContent='';
+  if(!files.length){target.innerHTML='<p class="muted">Nenhum arquivo importado ainda.</p>';return;}
+  const frag=document.createDocumentFragment();
+  for(const f of files){
+    const url=URL.createObjectURL(f.blob);
+    if(kind==='image'){
+      const card=document.createElement('div');card.className='item';
+      card.innerHTML=`<img src="${url}" alt="${esc(f.name)}" loading="lazy" decoding="async">
+        <span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+        <div class="meta">${fmtSize(f.size)}</div>
+        <button style="padding:6px 10px;font-size:12px">Excluir</button>`;
+      card.querySelector('img').onclick=()=>window.open(url,'_blank');
+      card.querySelector('button').onclick=async()=>{if(confirm('Excluir esta foto?')){await deleteFile(f.id);URL.revokeObjectURL(url);renderFiles(kind);}};
+      frag.appendChild(card);
+    }else{
+      const item=document.createElement('div');item.className='item';
+      const tag=kind==='audio'?'audio':'video';
+      item.innerHTML=`<span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+        <div class="meta">${fmtSize(f.size)}</div>
+        <${tag} controls playsinline preload="none" src="${url}"></${tag}>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <button style="padding:6px 10px;font-size:12px" class="dl">Baixar</button>
+          <button style="padding:6px 10px;font-size:12px">Excluir</button>
+        </div>`;
+      item.querySelector('.dl').onclick=()=>{const a=document.createElement('a');a.href=url;a.download=f.name;a.click();};
+      item.querySelector('button:last-child').onclick=async()=>{if(confirm('Excluir este arquivo?')){await deleteFile(f.id);URL.revokeObjectURL(url);renderFiles(kind);}};
+      frag.appendChild(item);
+    }
+  }
+  target.appendChild(frag);
+}
+
+/* ---------- INICIALIZAÇÃO DIFERIDA (não bloqueia o 1º paint) ---------- */
+function initStorage(){
+  openDB().then(async d=>{
+    db=d;
+    if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+    for(const k of kinds)await renderFiles(k);
+  }).catch(e=>{
+    console.warn(e);
+    document.querySelectorAll('.library,.photos').forEach(el=>{
+      el.innerHTML='<p class="muted">Armazenamento local indisponível.</p>';
+    });
+  });
+}
+if('requestIdleCallback' in window){
+  requestIdleCallback(initStorage,{timeout:1500});
+}else{
+  setTimeout(initStorage,300);
+}
+
+/* ---------- SERVICE WORKER (registra só quando ocioso) ---------- */
+function registerSW(){
+  if(!('serviceWorker' in navigator))return;
+  try{
+    const swCode=`const C='diamond-v1';
+self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{
+    if(r&&r.ok)caches.open(C).then(cc=>cc.put(e.request,r.clone()));
+    return r;
+  }).catch(()=>c)));
+});`;
+    const url=URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}));
+    navigator.serviceWorker.register(url,{scope:'./'}).catch(()=>{});
+  }catch(e){}
+}
+if('requestIdleCallback' in window){
+  requestIdleCallback(registerSW,{timeout:3000});
+}else{
+  setTimeout(registerSW,2000);
+}
+</script>
+</body>
+</html>
